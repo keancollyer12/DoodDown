@@ -1,1 +1,83 @@
-go
+name: Headed Playwright (noVNC + cloudflared)
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "URL to open in headed Playwright"
+        required: true
+        type: string
+
+jobs:
+  run-headed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install system deps for Xvfb/VNC/noVNC
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            xvfb fluxbox x11vnc novnc websockify \
+            ca-certificates curl
+
+      - name: Install npm deps
+        run: npm install
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Start virtual desktop (Xvfb + Fluxbox + x11vnc + noVNC)
+        run: |
+          chmod +x ./scripts/start-desktop.sh
+          DISPLAY=:0 ./scripts/start-desktop.sh
+
+      - name: Start cloudflared quick tunnel to noVNC
+        id: tunnel
+        run: |
+          curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o cloudflared
+          chmod +x cloudflared
+
+          set +e
+          ./cloudflared tunnel --url http://localhost:6080 --no-autoupdate >cloudflared.log 2>&1 &
+          echo $! > cloudflared.pid
+          set -e
+
+          for i in $(seq 1 60); do
+            URL=$(grep -oE 'https://[-a-z0-9]+\.trycloudflare\.com' cloudflared.log | head -n 1)
+            if [ -n "$URL" ]; then
+              echo "tunnel_url=$URL" >> $GITHUB_OUTPUT
+              break
+            fi
+            sleep 1
+          done
+
+          if [ -z "${URL:-}" ]; then
+            echo "cloudflared did not output a trycloudflare URL in time"
+            echo "--- cloudflared.log ---"
+            cat cloudflared.log
+            exit 1
+          fi
+
+      - name: Show noVNC URL
+        run: |
+          echo "Open this in a new browser tab to access the desktop:" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.tunnel.outputs.tunnel_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Then you will see the headed Chromium window inside the noVNC desktop." >> $GITHUB_STEP_SUMMARY
+
+      - name: Run headed Playwright to target URL (keeps session open)
+        env:
+          DISPLAY: :0
+          TARGET_URL: ${{ inputs.url }}
+        run: |
+          node ./src/run-headed.mjs "${{ inputs.url }}"
