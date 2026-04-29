@@ -71,7 +71,7 @@ jobs:
       - name: Show noVNC URL
         run: |
           echo "Open this in a new browser tab to access the desktop:" >> $GITHUB_STEP_SUMMARY
-          echo "${{ steps.tunnel.outputs.tunnel_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.tunnel.outputs.tunnel_url }}/vnc.html?autoconnect=true&resize=remote&path=websockify" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Then you will see the headed Chromium window inside the noVNC desktop." >> $GITHUB_STEP_SUMMARY
 
