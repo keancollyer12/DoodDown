@@ -36,26 +36,33 @@ jobs:
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Start virtual desktop (Xvfb + Fluxbox + x11vnc + noVNC)
+      - name: Start desktop + tunnel + headed Playwright (keeps session open)
+        env:
+          DISPLAY: :0
+          TARGET_URL: ${{ inputs.url }}
         run: |
+          set -euo pipefail
+
           chmod +x ./scripts/start-desktop.sh
           DISPLAY=:0 ./scripts/start-desktop.sh
 
-      - name: Start cloudflared quick tunnel to noVNC
-        id: tunnel
-        run: |
+          echo "Waiting for noVNC to be reachable on localhost:6080..."
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:6080/vnc.html >/dev/null 2>&1; then
+              break
+            fi
+            sleep 1
+          done
+          curl -fsS http://localhost:6080/vnc.html >/dev/null
+
           curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o cloudflared
           chmod +x cloudflared
 
-          set +e
           ./cloudflared tunnel --url http://localhost:6080 --no-autoupdate >cloudflared.log 2>&1 &
-          echo $! > cloudflared.pid
-          set -e
 
           for i in $(seq 1 60); do
-            URL=$(grep -oE 'https://[-a-z0-9]+\.trycloudflare\.com' cloudflared.log | head -n 1)
-            if [ -n "$URL" ]; then
-              echo "tunnel_url=$URL" >> $GITHUB_OUTPUT
+            URL=$(grep -oE 'https://[-a-z0-9]+\.trycloudflare\.com' cloudflared.log | head -n 1 || true)
+            if [ -n "${URL:-}" ]; then
               break
             fi
             sleep 1
@@ -68,16 +75,9 @@ jobs:
             exit 1
           fi
 
-      - name: Show noVNC URL
-        run: |
           echo "Open this in a new browser tab to access the desktop:" >> $GITHUB_STEP_SUMMARY
-          echo "${{ steps.tunnel.outputs.tunnel_url }}/vnc.html?autoconnect=true&resize=remote&path=websockify" >> $GITHUB_STEP_SUMMARY
+          echo "${URL}/vnc.html?autoconnect=true&resize=remote&path=websockify" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Then you will see the headed Chromium window inside the noVNC desktop." >> $GITHUB_STEP_SUMMARY
 
-      - name: Run headed Playwright to target URL (keeps session open)
-        env:
-          DISPLAY: :0
-          TARGET_URL: ${{ inputs.url }}
-        run: |
-          node ./src/run-headed.mjs "${{ inputs.url }}"
+          node ./src/run-headed.mjs "${TARGET_URL}"
