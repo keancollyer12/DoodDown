@@ -88,6 +88,8 @@ jobs:
             exit 1
           fi
 
+          echo "noVNC URL: ${URL}/vnc.html?autoconnect=true&resize=remote&path=websockify"
+
           echo "Open this in a new browser tab to access the desktop:" >> $GITHUB_STEP_SUMMARY
           echo "${URL}/vnc.html?autoconnect=true&resize=remote&path=websockify" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
