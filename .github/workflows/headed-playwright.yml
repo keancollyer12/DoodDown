@@ -55,7 +55,7 @@ jobs:
           sudo apt-get install -f -y
 
           # Python deps
-          pip install -r requirements.txt
+          pip install -r requirements.txt pyvirtualdisplay
 
       - name: Run Cloudflare Turnstile bypass
         run: |
