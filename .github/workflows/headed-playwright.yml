@@ -60,7 +60,7 @@ jobs:
       - name: Run Cloudflare Turnstile bypass
         run: |
           cd cloudflare-bypass-2026
-          python bypass.py --url "${{ inputs.url }}"
+          python bypass.py "${{ inputs.url }}"
 
       - name: Start desktop + tunnel + headed Playwright (keeps session open)
         env:
