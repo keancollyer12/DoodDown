@@ -36,6 +36,17 @@ jobs:
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
 
+      - name: Clone and setup Cloudflare bypass tool
+        run: |
+          git clone https://github.com/1837620622/cloudflare-bypass-2026.git
+          cd cloudflare-bypass-2026
+          sudo bash install_linux.sh
+
+      - name: Run Cloudflare Turnstile bypass
+        run: |
+          cd cloudflare-bypass-2026
+          python bypass.py --url "${{ inputs.url }}"
+
       - name: Start desktop + tunnel + headed Playwright (keeps session open)
         env:
           DISPLAY: :0
