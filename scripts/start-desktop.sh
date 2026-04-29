@@ -20,6 +20,6 @@ x11vnc \
   -noxrecord -noxfixes -noxdamage \
   >/tmp/x11vnc.log 2>&1 &
 
-websockify --web=/usr/share/novnc/ "$NOVNC_PORT" localhost:"$VNC_PORT" >/tmp/novnc.log 2>&1 &
+novnc_proxy --vnc localhost:"$VNC_PORT" --listen "$NOVNC_PORT" --web /usr/share/novnc/ >/tmp/novnc.log 2>&1 &
 
 echo "Desktop started. DISPLAY=$DISPLAY VNC_PORT=$VNC_PORT noVNC_PORT=$NOVNC_PORT"
