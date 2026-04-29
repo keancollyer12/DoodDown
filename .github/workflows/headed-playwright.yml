@@ -27,7 +27,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            xvfb fluxbox x11vnc novnc websockify \
+            xvfb fluxbox x11vnc novnc websockify x11-utils \
             ca-certificates curl
 
       - name: Install npm deps
@@ -53,7 +53,20 @@ jobs:
             fi
             sleep 1
           done
-          curl -fsS http://localhost:6080/vnc.html >/dev/null
+          if ! curl -fsS http://localhost:6080/vnc.html >/dev/null; then
+            echo "noVNC did not come up on localhost:6080"
+            echo "--- process list (filtered) ---"
+            ps aux | egrep 'Xvfb|fluxbox|x11vnc|novnc|websockify' || true
+            echo "--- /tmp/fluxbox.log ---"
+            cat /tmp/fluxbox.log || true
+            echo "--- /tmp/x11vnc.log ---"
+            cat /tmp/x11vnc.log || true
+            echo "--- /tmp/novnc.log ---"
+            cat /tmp/novnc.log || true
+            echo "--- listening ports ---"
+            ss -ltnp || true
+            exit 1
+          fi
 
           curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o cloudflared
           chmod +x cloudflared
