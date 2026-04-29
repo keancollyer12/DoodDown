@@ -1,0 +1,14 @@
+{
+  "name": "playwright-headed-vnc-actions",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "pw:install": "playwright install chromium",
+    "run:headed": "node ./src/run-headed.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.47.0"
+  }
+}
