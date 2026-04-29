@@ -40,7 +40,22 @@ jobs:
         run: |
           git clone https://github.com/1837620622/cloudflare-bypass-2026.git
           cd cloudflare-bypass-2026
-          sudo bash install_linux.sh
+
+          # Manual install for Ubuntu 22.04 (GitHub Actions runner)
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            xvfb libglib2.0-0 libnss3 libatk1.0-0 libatk-bridge2.0-0 \
+            libcups2 libdrm2 libxkbcommon0 libgbm1 libasound2t64 \
+            libxrandr2 libxss1 libgtk-3-0 libxcomposite1 libxcursor1 \
+            libxdamage1 libxi6 libxtst6 libgtk-3-0 libxss1
+
+          # Install Chrome (from README instructions)
+          wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo dpkg -i google-chrome-stable_current_amd64.deb
+          sudo apt-get install -f -y
+
+          # Python deps
+          pip install -r requirements.txt
 
       - name: Run Cloudflare Turnstile bypass
         run: |
